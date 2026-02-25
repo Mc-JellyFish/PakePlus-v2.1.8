@@ -1,11 +1,1348 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        Hello World
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>自学工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: '宅在家粉条甜','Segoe UI', 'Microsoft YaHei', sans-serif;
+            user-select: none;
+            background-color: transparent;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-color: var(--bg-color, transparent);
+            background-image: var(--bg-image, none);
+            background-size: cover;
+            background-position: center;
+            opacity: var(--bg-opacity, 0.05);
+            transition: opacity 0.5s ease;
+        }
+        :root {
+            --text-primary: #ffffff;
+            --text-secondary: #d6d6d6;
+            --text-result: #eeeeee;
+            --bg-color: transparent;
+            --bg-image: none;
+            --bg-opacity: 0.05;
+            --base-width: 1920px;
+            --base-height: 1080px;
+
+            /* 独立颜色变量 */
+            --label-course-color: #d6d6d6;
+            --info-content-color: #ffffff;
+            --day-counter-color: #eeeeee;
+        }
+
+        .viewport-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .scale-container {
+            position: relative;
+            width: 1920px;
+            height: 900px;
+            transform-origin: center center;
+            pointer-events: auto;
+        }
+
+        /* ========= 简洁模式 ========= */
+        .mode-simple .main-card {
+            font-size: 2em;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: transparent;
+        }
+        .mode-simple #current-class {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10em;
+            padding: 30px;
+            border-radius: 16px;
+            width: auto;
+            min-width: 1000px;
+            white-space: nowrap;
+        }
+        .mode-simple .time-row {
+            flex-direction: column;
+            align-items: center;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .mode-simple .current-time {
+            font-weight: bold;
+            text-align: center;
+            min-width: 80px;
+            width: auto;   
+        }
+        .mode-simple .current-time .digit {
+            font-size: 3.6em;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #48ffa0, #ff00bfc5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .mode-simple .info-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .mode-simple .info-main > div {
+            margin: 0px 0;
+            text-align: center;
+            align-items: center;
+        }
+        .mode-simple .label {
+            font-size: 0.5em;
+            color: var(--label-course-color);
+            margin-right: 10px;
+            transform: translateY(-20px);
+        }
+        .mode-simple .info-text {
+            line-height: 2;
+            font-size: 1.1em;
+            color: var(--info-content-color);
+            font-weight: 600;
+        }
+        .mode-simple #countdown-display {
+            font-size: 1.1em;
+            font-weight: 800;
+            color: var(--info-content-color);
+            min-width: 50px;
+            display: inline-block;
+            text-align: center;
+        }
+        .mode-simple #stopwatch {
+            position: absolute;
+            top: 113%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #ff3a2c;
+            display: none;
+            pointer-events: auto;
+            cursor: pointer;
+            white-space: nowrap;
+            text-shadow: 0 0 30px rgba(255,102,102,0.76);
+        }
+        .mode-simple .calculator-box {
+            display: none;
+        }
+
+        .mode-standard .main-card {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+        }
+        .mode-standard .time-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            margin-top: 30px;
+        }
+        .mode-standard .current-time {
+            background: linear-gradient(135deg, #48ffa0, #ff00bfc5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            font-size: 180px;
+            display: flex;
+            gap: 40px;
+            font-weight: bold;
+            color: transparent;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        .mode-standard .info-main {
+            font-size: 2em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+        .mode-standard .info-main > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .mode-standard .label {
+            font-size: 36px;
+            color: var(--label-course-color);
+        }
+        .mode-standard .info-text {
+            font-size: 56px;
+            color: var(--info-content-color);
+            font-weight: 600;
+        }
+        .mode-standard #countdown-display {
+            font-size: 70px;
+            font-weight: 800;
+            color: var(--info-content-color);
+            text-shadow: 0 0 20px rgba(76, 255, 160, 0.589);
+            letter-spacing: 4px;
+        }
+        .mode-standard .calculator-box {
+            margin-top: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .mode-standard .calculator-box .result {
+            font-size: 48px;
+            color: var(--day-counter-color);
+            line-height: 1.4;
+            text-align: center;
+        }
+        .mode-standard #stopwatch {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 80px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #ff3a2c;
+            text-shadow: 0 0 30px rgba(255, 102, 102, 0.76);
+            display: none;
+            pointer-events: auto;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #countdown-label {
+            font-size: inherit;
+            color: var(--label-course-color);
+        }
+        .mode-simple #countdown-label {
+            font-size: 0.5em;
+            transform: translateY(-20px);
+            display: inline-block;
+        }
+
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            display: none;
+        }
+        .edit-container {
+            background: #2c2c2c;
+            color: #fff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 1100px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            position: relative;
+        }
+        .edit-title {
+            font-size: 1.8em;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #48ffa0;
+        }
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 1.5em;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: #fff; }
+        .section {
+            margin-bottom: 32px;
+            padding: 16px;
+            border: 1px solid #444;
+            border-radius: 8px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #ffcc4d;
+        }
+        table.course-list {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.course-list th,
+        table.course-list td {
+            padding: 8px;
+            border: 1px solid #444;
+        }
+        table.course-list input,
+        table.course-list select {
+            width: 100%;
+            padding: 4px;
+            box-sizing: border-box;
+            background: #3a3a3a;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+        .delete-course-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .add-course-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .date-input-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .date-input-group label,
+        .date-input-group input,
+        .date-input-group span {
+            margin: 4px 0;
+        }
+        .date-input-group input[type="date"],
+        .date-input-group input[type="number"],
+        .date-input-group input[type="text"] {
+            padding: 6px;
+            background: #3a3a3a;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+        /* 自定义颜色区域 */
+        .color-custom-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 15px 0 5px;
+            align-items: center;
+        }
+        .color-custom-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-custom-item label {
+            min-width: 100px;
+        }
+        .color-custom-item input[type="color"] {
+            width: 60px;
+            height: 35px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .music-library-list {
+            list-style: none;
+            padding: 0;
+        }
+        .music-library-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #444;
+        }
+        .play-music-btn, .remove-music-btn {
+            padding: 4px 8px;
+            margin-left: 8px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        .play-music-btn { background-color: #3498db; color: white; }
+        .remove-music-btn { background-color: #e74c3c; color: white; }
+        .add-music-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .bg-setting-toggle { margin-bottom: 12px; }
+        .color-picker-wrapper,
+        .image-selector-wrapper,
+        .opacity-slider-wrapper {
+            margin-top: 12px;
+        }
+        .color-picker-wrapper input[type="color"] {
+            width: 60px;
+            height: 32px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .image-selector-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+        .opacity-slider { width: 100%; }
+        .save-exit-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+        }
+        .mode-switch-row {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .mode-switch-row label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #ddd;
+        }
+        .mode-switch-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .confirm-box {
+            background: #3c3c3c;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .confirm-buttons {
+            margin-top: 16px;
+        }
+        .confirm-btn {
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* 自定义错误弹窗 (与confirm类似但更显眼) */
+        .error-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100;
+        }
+        .error-box {
+            background: #4a2a2a;
+            border-left: 8px solid #e74c3c;
+            padding: 24px 32px;
+            border-radius: 12px;
+            max-width: 500px;
+            color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .error-box h3 {
+            color: #ff8888;
+            margin-bottom: 12px;
+            font-size: 1.5em;
+        }
+        .error-box p {
+            margin-bottom: 24px;
+            word-break: break-word;
+        }
+        .error-close-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 24px;
+            font-size: 1em;
+            cursor: pointer;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-wrapper" id="viewportWrapper">
+        <div class="scale-container" id="scaleContainer">
+            <div class="main-card" id="mainCard">
+                <div id="current-class">
+                    <div class="time-row">
+                        <div class="current-time">
+                            <span class="digit hour">--</span>
+                            <span class="digit minute">--</span>
+                        </div>
+                        <div class="info-main">
+                            <div>
+                                <span class="label" id="subject_name-display">课程</span>
+                                <span class="info-text" id="subject_time-display">--:–––-–:––</span>
+                            </div>                            
+                            <div>
+                                <span class="label" id="countdown-label">下课倒计时</span>
+                                <span id="countdown-display">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="calculator-box">
+                    <div class="result" id="dayResult">2026-02-14<br>学习 128 天<br>2027高考还有 478天</div>
+                </div>
+                <div id="stopwatch">00:00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 二级编辑界面 -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-container">
+            <button class="close-btn" id="closeEditBtn">&times;</button>
+            <h2 class="edit-title">课程表设置</h2>
+            <div class="section">
+                <h3>显示模式</h3>
+                <div class="mode-switch-row">
+                    <label>
+                        <input type="checkbox" id="simpleModeToggle"> 简洁模式 
+                    </label>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🎨 文字颜色</h3>
+                <div class="color-custom-row">
+                    <div class="color-custom-item">
+                        <label>标题色 (课程/倒计时标题):</label>
+                        <input type="color" id="labelColorPicker" value="#d6d6d6">
+                    </div>
+                    <div class="color-custom-item">
+                        <label>内容色 (休息中/时间/倒计时数字):</label>
+                        <input type="color" id="contentColorPicker" value="#ffffff">
+                    </div>
+                    <div class="color-custom-item">
+                        <label>日期正倒计时颜色:</label>
+                        <input type="color" id="dayCounterColorPicker" value="#eeeeee">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>课程列表</h3>
+                <table class="course-list">
+                    <thead>
+                        <tr>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>课程名</th>
+                            <th>开始铃声</th>
+                            <th>结束铃声</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="courseListBody"></tbody>
+                </table>
+                <button class="add-course-btn" id="addCourseBtn">+ 添加课程</button>
+            </div>
+            <div class="section">
+                <h3>日期与天数</h3>
+                <div class="date-input-group">
+                    <label>起始日期: <input type="date" id="startDateInput"></label>
+                    <label>目标日期: <input type="date" id="targetDateInput"></label>
+                    <label>请假天数: <input type="number" id="leaveDaysInput" min="0"></label>
+                    <label>正计时文字: <input type="text" id="learningLabelInput" placeholder="如：已坚持"></label>
+                    <label>倒计时文字: <input type="text" id="targetLabelInput" placeholder="如：考试"></label>
+                </div>
+            </div>
+            <div class="section">
+                <h3>铃声管理</h3>
+                <ul class="music-library-list" id="musicLibraryList"></ul>
+                <button class="add-music-btn" id="addMusicBtn">+ 添加音乐</button>
+                <input type="file" id="musicFileInput" accept="audio/*" style="display: none;">
+            </div>
+            <div class="section">
+                <h3>背景设置</h3>
+                <label class="bg-setting-toggle">
+                    <input type="checkbox" id="enablePureColorToggle"> 启用纯色背景
+                </label>
+                <div class="color-picker-wrapper" id="colorPickerWrapper" style="display: none;">
+                    <label>纯色背景: <input type="color" id="colorPicker"></label>
+                </div>
+                <div class="image-selector-wrapper" id="imageSelectorWrapper">
+                    <button class="image-selector-btn" id="selectImageBtn">选择图片</button>
+                    <input type="file" id="backgroundImageInput" accept="image/*" style="display: none;">
+                </div>
+                <div class="opacity-slider-wrapper">
+                    <label>背景透明度:</label>
+                    <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="0.05">
+                    <span id="opacityValue">0.05</span>
+                </div>
+            </div>
+            <button class="save-exit-btn" id="saveExitBtn">保存并退出</button>
+        </div>
+    </div>
+
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-box">
+            <p>是否保存更改？</p>
+            <div class="confirm-buttons">
+                <button class="confirm-btn yes" id="confirmYesBtn">是</button>
+                <button class="confirm-btn no" id="confirmNoBtn">否</button>
+                <button class="confirm-btn cancel" id="confirmCancelBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义错误弹窗 -->
+    <div class="error-modal" id="errorModal">
+        <div class="error-box">
+            <h3>⚠️ 操作失败</h3>
+            <p id="errorMessage">错误信息</p>
+            <button class="error-close-btn" id="errorCloseBtn">确定</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 检测 Tauri API ----------
+            const isTauri = window.__TAURI__ !== undefined;
+            console.log('Tauri available:', isTauri);
+
+            // 数据键名 (仅用于localStorage fallback)
+            const LS_KEY_SCHEDULE = 'scheduleData';
+            const LS_KEY_DATES = 'dateSettings';
+            const LS_KEY_SOUNDS = 'soundLibrary';
+            const LS_KEY_BG = 'backgroundSettings';
+            const LS_KEY_UI = 'uiModeSettings';
+            const LS_KEY_COLORS = 'userColorSettings';
+
+            // 全局数据
+            let currentSchedule = [];
+            let currentDateSettings = {};
+            let currentSoundLibrary = [];
+            let currentBgSettings = {};
+            let uiSettings = { simpleMode: false };
+            let userColors = {
+                labelColor: '#d6d6d6',
+                contentColor: '#ffffff',
+                dayCounterColor: '#eeeeee'
+            };
+
+            let audioContext = null;
+            let lastCheckedTime = new Date();
+
+            // DOM
+            const scaleContainer = document.getElementById('scaleContainer');
+            const mainCard = document.getElementById('mainCard');
+            const editModal = document.getElementById('editModal');
+            const closeEditBtn = document.getElementById('closeEditBtn');
+            const confirmModal = document.getElementById('confirmModal');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+            const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+            const courseListBody = document.getElementById('courseListBody');
+            const addCourseBtn = document.getElementById('addCourseBtn');
+            const musicLibraryList = document.getElementById('musicLibraryList');
+            const addMusicBtn = document.getElementById('addMusicBtn');
+            const musicFileInput = document.getElementById('musicFileInput');
+            const startDateInput = document.getElementById('startDateInput');
+            const targetDateInput = document.getElementById('targetDateInput');
+            const leaveDaysInput = document.getElementById('leaveDaysInput');
+            const learningLabelInput = document.getElementById('learningLabelInput');
+            const targetLabelInput = document.getElementById('targetLabelInput');
+            const enablePureColorToggle = document.getElementById('enablePureColorToggle');
+            const colorPicker = document.getElementById('colorPicker');
+            const colorPickerWrapper = document.getElementById('colorPickerWrapper');
+            const imageSelectorWrapper = document.getElementById('imageSelectorWrapper');
+            const selectImageBtn = document.getElementById('selectImageBtn');
+            const backgroundImageInput = document.getElementById('backgroundImageInput');
+            const opacitySlider = document.getElementById('opacitySlider');
+            const opacityValue = document.getElementById('opacityValue');
+            const saveExitBtn = document.getElementById('saveExitBtn');
+            const simpleModeToggle = document.getElementById('simpleModeToggle');
+            const labelColorPicker = document.getElementById('labelColorPicker');
+            const contentColorPicker = document.getElementById('contentColorPicker');
+            const dayCounterColorPicker = document.getElementById('dayCounterColorPicker');
+            // 错误弹窗
+            const errorModal = document.getElementById('errorModal');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorCloseBtn = document.getElementById('errorCloseBtn');
+
+            // 显示错误
+            function showError(msg) {
+                errorMessage.textContent = msg;
+                errorModal.style.display = 'flex';
+            }
+            errorCloseBtn.addEventListener('click', () => {
+                errorModal.style.display = 'none';
+            });
+
+            // ---------- Tauri 存储适配器 ----------
+            const storageAdapter = {
+                async getItem(key) {
+                    if (isTauri) {
+                        try {
+                            const { fs, path, os } = window.__TAURI__;
+                            const appDataDir = await path.appDataDir();
+                            const filePath = await path.join(appDataDir, `${key}.json`);
+                            try {
+                                const contents = await fs.readTextFile(filePath);
+                                return JSON.parse(contents);
+                            } catch (e) {
+                                // 文件不存在返回null
+                                return null;
+                            }
+                        } catch (e) {
+                            console.warn('Tauri read error, fallback to localStorage', e);
+                            const item = localStorage.getItem(key);
+                            return item ? JSON.parse(item) : null;
+                        }
+                    } else {
+                        const item = localStorage.getItem(key);
+                        return item ? JSON.parse(item) : null;
+                    }
+                },
+                async setItem(key, value) {
+                    if (isTauri) {
+                        try {
+                            const { fs, path, os } = window.__TAURI__;
+                            const appDataDir = await path.appDataDir();
+                            // 确保目录存在
+                            try { await fs.createDir(appDataDir, { recursive: true }); } catch (e) {}
+                            const filePath = await path.join(appDataDir, `${key}.json`);
+                            await fs.writeTextFile(filePath, JSON.stringify(value, null, 2));
+                        } catch (e) {
+                            console.error('Tauri write error, fallback to localStorage', e);
+                            localStorage.setItem(key, JSON.stringify(value));
+                            // 弹出错误提示
+                            showError(`Tauri保存失败: ${e.message || '未知错误'}，已使用本地缓存。`);
+                        }
+                    } else {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    }
+                }
+            };
+
+            // 加载数据
+            async function loadAllData() {
+                try {
+                    let savedSchedule = await storageAdapter.getItem(LS_KEY_SCHEDULE);
+                    if (Array.isArray(savedSchedule)) {
+                        currentSchedule = savedSchedule;
+                    } else {
+                        currentSchedule = [
+                            { start: "07:40", end: "08:40", subject: "晨读", startSound: "", endSound: "" },
+                            { start: "08:50", end: "10:20", subject: "语文", startSound: "", endSound: "" },
+                            { start: "10:30", end: "12:00", subject: "数学", startSound: "", endSound: "" },
+                            { start: "13:00", end: "14:30", subject: "生物", startSound: "", endSound: "" },
+                            { start: "14:40", end: "16:10", subject: "数学", startSound: "", endSound: "" },
+                            { start: "16:20", end: "17:50", subject: "化学", startSound: "", endSound: "" },
+                            { start: "18:40", end: "20:10", subject: "数学", startSound: "", endSound: "" },
+                            { start: "20:20", end: "21:50", subject: "语文", startSound: "", endSound: "" },
+                            { start: "22:00", end: "23:00", subject: "英语", startSound: "", endSound: "" },
+                            { start: "23:15", end: "23:36", subject: "总结", startSound: "", endSound: "" },
+                        ];
+                    }
+
+                    let savedDates = await storageAdapter.getItem(LS_KEY_DATES);
+                    if (savedDates) {
+                        currentDateSettings = savedDates;
+                    } else {
+                        currentDateSettings = {
+                            startDate: '2026-02-01',
+                            targetDate: '2027-06-07',
+                            leaveDays: 3,
+                            learningLabel: '学习',
+                            targetLabel: '2027高考还有'
+                        };
+                    }
+
+                    let savedSounds = await storageAdapter.getItem(LS_KEY_SOUNDS);
+                    currentSoundLibrary = Array.isArray(savedSounds) ? savedSounds : [];
+
+                    let savedBg = await storageAdapter.getItem(LS_KEY_BG);
+                    if (savedBg) {
+                        currentBgSettings = savedBg;
+                    } else {
+                        currentBgSettings = {
+                            usePureColor: false,
+                            pureColor: '#111',
+                            backgroundImage: '',
+                            opacity: 0.05
+                        };
+                    }
+
+                    let savedUi = await storageAdapter.getItem(LS_KEY_UI);
+                    if (savedUi) {
+                        uiSettings = savedUi;
+                    } else {
+                        uiSettings = { simpleMode: false };
+                    }
+
+                    let savedColors = await storageAdapter.getItem(LS_KEY_COLORS);
+                    if (savedColors) {
+                        userColors = savedColors;
+                    } else {
+                        userColors = { labelColor: '#d6d6d6', contentColor: '#ffffff', dayCounterColor: '#eeeeee' };
+                    }
+                } catch (e) {
+                    showError('加载数据失败: ' + e.message);
+                }
+            }
+
+            // 应用UI模式 + 颜色变量
+            function applyUIModeAndColors() {
+                if (uiSettings.simpleMode) {
+                    mainCard.classList.add('mode-simple');
+                    mainCard.classList.remove('mode-standard');
+                } else {
+                    mainCard.classList.add('mode-standard');
+                    mainCard.classList.remove('mode-simple');
+                }
+                document.documentElement.style.setProperty('--label-course-color', userColors.labelColor);
+                document.documentElement.style.setProperty('--info-content-color', userColors.contentColor);
+                document.documentElement.style.setProperty('--day-counter-color', userColors.dayCounterColor);
+            }
+
+            // 应用背景
+            function applyBackground() {
+                if (currentBgSettings.usePureColor) {
+                    document.documentElement.style.setProperty('--bg-color', currentBgSettings.pureColor);
+                    document.documentElement.style.setProperty('--bg-image', 'none');
+                } else {
+                    document.documentElement.style.setProperty('--bg-image', currentBgSettings.backgroundImage ? `url(${currentBgSettings.backgroundImage})` : 'none');
+                    document.documentElement.style.setProperty('--bg-color', '#00000000');
+                }
+                document.documentElement.style.setProperty('--bg-opacity', currentBgSettings.opacity.toString());
+                if (opacitySlider) opacitySlider.value = currentBgSettings.opacity;
+                if (opacityValue) opacityValue.textContent = currentBgSettings.opacity.toFixed(2);
+            }
+
+            // 缩放
+            function smartResize() {
+                const designWidth = 1920;
+                const designHeight = 1080;
+                const actualWidth = window.innerWidth;
+                const actualHeight = window.innerHeight;
+                let scale;
+                if (uiSettings.simpleMode) {
+                    scale = Math.min(actualWidth / designWidth, actualHeight / designHeight);
+                } else {
+                    const baseHeight = 1080;
+                    scale = actualHeight / baseHeight;
+                    scale = Math.max(scale, 0.3);
+                }
+                scaleContainer.style.transform = `scale(${scale})`;
+            }
+
+            // 辅助函数
+            function parseTime(t) {
+                let [h, m] = t.split(':').map(Number);
+                let d = new Date();
+                d.setHours(h, m, 0, 0);
+                return d;
+            }
+
+            function formatTimeRemaining(s) {
+                if (s < 0) s = 0;
+                return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+            }
+
+            function playAudioFromName(name) {
+                if (!name) return;
+                const s = currentSoundLibrary.find(ss => ss.name === name);
+                if (s) playAudioFromDataUrl(s.dataUrl);
+            }
+
+            function playAudioFromDataUrl(dataUrl) {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                fetch(dataUrl)
+                    .then(r => r.arrayBuffer())
+                    .then(b => audioContext.decodeAudioData(b))
+                    .then(buf => {
+                        let s = audioContext.createBufferSource();
+                        s.buffer = buf;
+                        s.connect(audioContext.destination);
+                        s.start();
+                    })
+                    .catch(err => showError('音频播放失败: ' + err.message));
+            }
+
+            // 更新主界面
+            function updateDisplay() {
+                const now = new Date();
+                document.querySelectorAll('.hour').forEach(el => el.textContent = now.getHours().toString().padStart(2, '0'));
+                document.querySelectorAll('.minute').forEach(el => el.textContent = now.getMinutes().toString().padStart(2, '0'));
+
+                let currentClass = null, nextClass = null;
+                for (let i = 0; i < currentSchedule.length; i++) {
+                    const it = currentSchedule[i];
+                    const s = parseTime(it.start);
+                    const e = parseTime(it.end);
+                    if (now >= s && now < e) {
+                        currentClass = it;
+                        if (i < currentSchedule.length - 1) nextClass = currentSchedule[i + 1];
+                        break;
+                    } else if (now < s) {
+                        nextClass = it;
+                        break;
+                    }
+                }
+
+                const subjTime = document.getElementById('subject_time-display');
+                const labelEl = document.getElementById('countdown-label');
+                const subjName = document.getElementById('subject_name-display');
+                const countdownEl = document.getElementById('countdown-display');
+
+                if (currentClass) {
+                    subjName.textContent = currentClass.subject;
+                    subjTime.textContent = `${currentClass.start}–${currentClass.end}`;
+                    labelEl.textContent = uiSettings.simpleMode ? '下课倒计时' : '休息倒计时';
+                    const diff = Math.floor((parseTime(currentClass.end) - now) / 1000);
+                    countdownEl.textContent = formatTimeRemaining(diff);
+                } else if (nextClass) {
+                    subjName.textContent = uiSettings.simpleMode ? nextClass.subject : nextClass.subject + `（${nextClass.start}）`;
+                    subjTime.textContent = '休息中';
+                    labelEl.textContent = '上课倒计时';
+                    const diff = Math.floor((parseTime(nextClass.start) - now) / 1000);
+                    countdownEl.textContent = formatTimeRemaining(diff);
+                } else {
+                    subjTime.textContent = '今日课程已结束';
+                    labelEl.textContent = '';
+                    countdownEl.textContent = '';
+                }
+
+                // 天数计算
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = String(today.getMonth() + 1).padStart(2, '0');
+                const d = String(today.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${m}-${d}`;
+                const start = new Date(currentDateSettings.startDate);
+                const target = new Date(currentDateSettings.targetDate);
+                today.setHours(0, 0, 0, 0);
+                const dayDiff = Math.floor((today - start) / (1000 * 60 * 60 * 24)) - (currentDateSettings.leaveDays || 0);
+                const targetDiff = Math.floor((target - today) / (1000 * 60 * 60 * 24));
+                const dayResult = document.getElementById('dayResult');
+                if (dayResult) {
+                    dayResult.innerHTML = `${dateStr}<br>${currentDateSettings.learningLabel} ${dayDiff} 天<br>${currentDateSettings.targetLabel} ${Math.max(0, targetDiff)}天`;
+                }
+
+                // 整分钟提示
+                if (now.getMinutes() !== lastCheckedTime.getMinutes() || now.getHours() !== lastCheckedTime.getHours()) {
+                    for (let item of currentSchedule) {
+                        const startTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                        if (item.start === startTimeStr) playAudioFromName(item.startSound);
+                        if (item.end === startTimeStr) playAudioFromName(item.endSound);
+                    }
+                    lastCheckedTime = new Date(now);
+                }
+            }
+
+            // 编辑界面填充
+            function populateCourseList() {
+                courseListBody.innerHTML = '';
+                currentSchedule.forEach((item, idx) => {
+                    const row = document.createElement('tr');
+                    
+                    const startTd = document.createElement('td');
+                    const startInp = document.createElement('input');
+                    startInp.type = 'time';
+                    startInp.value = item.start;
+                    startInp.onchange = e => currentSchedule[idx].start = e.target.value;
+                    startTd.appendChild(startInp);
+
+                    const endTd = document.createElement('td');
+                    const endInp = document.createElement('input');
+                    endInp.type = 'time';
+                    endInp.value = item.end;
+                    endInp.onchange = e => currentSchedule[idx].end = e.target.value;
+                    endTd.appendChild(endInp);
+
+                    const subjTd = document.createElement('td');
+                    const subjInp = document.createElement('input');
+                    subjInp.type = 'text';
+                    subjInp.value = item.subject;
+                    subjInp.onchange = e => currentSchedule[idx].subject = e.target.value;
+                    subjTd.appendChild(subjInp);
+
+                    const startSoundTd = document.createElement('td');
+                    const startSel = document.createElement('select');
+                    startSel.innerHTML = '<option value="">无</option>';
+                    currentSoundLibrary.forEach(s => {
+                        let opt = document.createElement('option');
+                        opt.value = s.name;
+                        opt.textContent = s.name;
+                        if (item.startSound === s.name) opt.selected = true;
+                        startSel.appendChild(opt);
+                    });
+                    startSel.onchange = e => currentSchedule[idx].startSound = e.target.value;
+                    startSoundTd.appendChild(startSel);
+
+                    const endSoundTd = document.createElement('td');
+                    const endSel = document.createElement('select');
+                    endSel.innerHTML = '<option value="">无</option>';
+                    currentSoundLibrary.forEach(s => {
+                        let opt = document.createElement('option');
+                        opt.value = s.name;
+                        opt.textContent = s.name;
+                        if (item.endSound === s.name) opt.selected = true;
+                        endSel.appendChild(opt);
+                    });
+                    endSel.onchange = e => currentSchedule[idx].endSound = e.target.value;
+                    endSoundTd.appendChild(endSel);
+
+                    const delTd = document.createElement('td');
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'delete-course-btn';
+                    delBtn.textContent = '删除';
+                    delBtn.onclick = () => {
+                        if (currentSchedule.length > 1) {
+                            currentSchedule.splice(idx, 1);
+                            populateCourseList();
+                        } else {
+                            alert('至少保留一行课程');
+                        }
+                    };
+                    delTd.appendChild(delBtn);
+
+                    row.append(startTd, endTd, subjTd, startSoundTd, endSoundTd, delTd);
+                    courseListBody.appendChild(row);
+                });
+            }
+
+            function populateMusicLibrary() {
+                musicLibraryList.innerHTML = '';
+                currentSoundLibrary.forEach((s, idx) => {
+                    let li = document.createElement('li');
+                    li.className = 'music-library-item';
+                    let nameSpan = document.createElement('span');
+                    nameSpan.textContent = s.name;
+                    let playBtn = document.createElement('button');
+                    playBtn.className = 'play-music-btn';
+                    playBtn.textContent = '试听';
+                    playBtn.onclick = () => playAudioFromDataUrl(s.dataUrl);
+                    let rmBtn = document.createElement('button');
+                    rmBtn.className = 'remove-music-btn';
+                    rmBtn.textContent = '删除';
+                    rmBtn.onclick = () => {
+                        currentSoundLibrary.splice(idx, 1);
+                        populateMusicLibrary();
+                        populateCourseList();
+                    };
+                    li.append(nameSpan, playBtn, rmBtn);
+                    musicLibraryList.appendChild(li);
+                });
+            }
+
+            function handleFileUpload(input, cb) {
+                let file = input.files[0];
+                if (!file) return;
+                let reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        let name = file.name.replace(/\.[^/.]+$/, '');
+                        cb({ name, dataUrl: e.target.result });
+                    } catch (err) {
+                        showError('读取文件失败: ' + err.message);
+                    }
+                };
+                reader.onerror = () => showError('无法读取文件，可能已损坏');
+                reader.readAsDataURL(file);
+            }
+
+            function openEditModal() {
+                populateCourseList();
+                populateMusicLibrary();
+                
+                startDateInput.value = currentDateSettings.startDate || '2026-02-01';
+                targetDateInput.value = currentDateSettings.targetDate || '2027-06-07';
+                leaveDaysInput.value = currentDateSettings.leaveDays || 0;
+                learningLabelInput.value = currentDateSettings.learningLabel || '学习';
+                targetLabelInput.value = currentDateSettings.targetLabel || '2027高考还有';
+                
+                enablePureColorToggle.checked = currentBgSettings.usePureColor || false;
+                colorPicker.value = currentBgSettings.pureColor || '#111';
+                opacitySlider.value = currentBgSettings.opacity || 0.05;
+                opacityValue.textContent = opacitySlider.value;
+                
+                simpleModeToggle.checked = uiSettings.simpleMode;
+
+                labelColorPicker.value = userColors.labelColor;
+                contentColorPicker.value = userColors.contentColor;
+                dayCounterColorPicker.value = userColors.dayCounterColor;
+
+                if (enablePureColorToggle.checked) {
+                    colorPickerWrapper.style.display = 'block';
+                    imageSelectorWrapper.style.display = 'none';
+                } else {
+                    colorPickerWrapper.style.display = 'none';
+                    imageSelectorWrapper.style.display = 'block';
+                }
+
+                editModal.style.display = 'flex';
+            }
+
+            async function saveAndExit() {
+                try {
+                    currentDateSettings.startDate = startDateInput.value;
+                    currentDateSettings.targetDate = targetDateInput.value;
+                    currentDateSettings.leaveDays = parseInt(leaveDaysInput.value) || 0;
+                    currentDateSettings.learningLabel = learningLabelInput.value.trim() || '学习';
+                    currentDateSettings.targetLabel = targetLabelInput.value.trim() || '2027高考还有';
+
+                    currentBgSettings.usePureColor = enablePureColorToggle.checked;
+                    currentBgSettings.pureColor = colorPicker.value;
+                    currentBgSettings.opacity = parseFloat(opacitySlider.value);
+
+                    uiSettings.simpleMode = simpleModeToggle.checked;
+
+                    userColors.labelColor = labelColorPicker.value;
+                    userColors.contentColor = contentColorPicker.value;
+                    userColors.dayCounterColor = dayCounterColorPicker.value;
+
+                    await storageAdapter.setItem(LS_KEY_SCHEDULE, currentSchedule);
+                    await storageAdapter.setItem(LS_KEY_DATES, currentDateSettings);
+                    await storageAdapter.setItem(LS_KEY_SOUNDS, currentSoundLibrary);
+                    await storageAdapter.setItem(LS_KEY_BG, currentBgSettings);
+                    await storageAdapter.setItem(LS_KEY_UI, uiSettings);
+                    await storageAdapter.setItem(LS_KEY_COLORS, userColors);
+
+                    applyBackground();
+                    applyUIModeAndColors();
+                    smartResize();
+                    updateDisplay();
+
+                    editModal.style.display = 'none';
+                } catch (e) {
+                    showError('保存时出错: ' + e.message);
+                }
+            }
+
+            function closeEditModalWithConfirm() {
+                confirmModal.style.display = 'flex';
+            }
+
+            // 秒表逻辑
+            let stopwatchInterval;
+            let stopwatchStartTime = 0;
+            let stopwatchElapsedWhenPaused = 0;
+            let isStopwatchRunning = false;
+            let isStopwatchVisible = false;
+
+            function formatStopwatchTime(ms) {
+                let s = Math.floor(ms / 1000);
+                return `${Math.floor(s / 3600).toString().padStart(2, '0')}:${Math.floor((s % 3600) / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+            }
+
+            function updateStopwatchDisplay() {
+                document.getElementById('stopwatch').textContent = formatStopwatchTime(Date.now() - stopwatchStartTime + stopwatchElapsedWhenPaused);
+            }
+
+            function startStopwatch() {
+                if (isStopwatchRunning || isStopwatchVisible) return;
+                stopwatchStartTime = Date.now();
+                stopwatchInterval = setInterval(updateStopwatchDisplay, 100);
+                isStopwatchRunning = true;
+                document.getElementById('stopwatch').style.display = 'block';
+                isStopwatchVisible = true;
+            }
+
+            function pauseStopwatch() {
+                if (!isStopwatchRunning) return;
+                clearInterval(stopwatchInterval);
+                stopwatchElapsedWhenPaused += Date.now() - stopwatchStartTime;
+                isStopwatchRunning = false;
+            }
+
+            function resumeStopwatch() {
+                if (isStopwatchRunning) return;
+                stopwatchStartTime = Date.now();
+                stopwatchInterval = setInterval(updateStopwatchDisplay, 100);
+                isStopwatchRunning = true;
+            }
+
+            function resetAndHideStopwatch() {
+                clearInterval(stopwatchInterval);
+                isStopwatchRunning = false;
+                stopwatchElapsedWhenPaused = 0;
+                document.getElementById('stopwatch').textContent = '00:00:00';
+                document.getElementById('stopwatch').style.display = 'none';
+                isStopwatchVisible = false;
+            }
+
+            // 事件绑定
+            mainCard.addEventListener('dblclick', openEditModal);
+            closeEditBtn.addEventListener('click', closeEditModalWithConfirm);
+
+            addCourseBtn.addEventListener('click', () => {
+                currentSchedule.push({ start: "08:00", end: "09:00", subject: "", startSound: "", endSound: "" });
+                populateCourseList();
+            });
+
+            addMusicBtn.addEventListener('click', () => musicFileInput.click());
+
+            musicFileInput.addEventListener('change', (e) => {
+                handleFileUpload(e.target, (ns) => {
+                    if (currentSoundLibrary.some(s => s.name === ns.name)) {
+                        showError('铃声名称已存在，请重命名文件');
+                        return;
+                    }
+                    currentSoundLibrary.push(ns);
+                    populateMusicLibrary();
+                    populateCourseList();
+                    e.target.value = '';
+                });
+            });
+
+            selectImageBtn.addEventListener('click', () => backgroundImageInput.click());
+
+            backgroundImageInput.addEventListener('change', (e) => {
+                handleFileUpload(e.target, (nb) => {
+                    currentBgSettings.backgroundImage = nb.dataUrl;
+                    e.target.value = '';
+                });
+            });
+
+            enablePureColorToggle.addEventListener('change', () => {
+                if (enablePureColorToggle.checked) {
+                    colorPickerWrapper.style.display = 'block';
+                    imageSelectorWrapper.style.display = 'none';
+                } else {
+                    colorPickerWrapper.style.display = 'none';
+                    imageSelectorWrapper.style.display = 'block';
+                }
+            });
+
+            opacitySlider.addEventListener('input', () => {
+                opacityValue.textContent = opacitySlider.value;
+            });
+
+            saveExitBtn.addEventListener('click', saveAndExit);
+
+            confirmYesBtn.addEventListener('click', async () => {
+                await saveAndExit();
+                confirmModal.style.display = 'none';
+            });
+
+            confirmNoBtn.addEventListener('click', () => {
+                editModal.style.display = 'none';
+                confirmModal.style.display = 'none';
+            });
+
+            confirmCancelBtn.addEventListener('click', () => {
+                confirmModal.style.display = 'none';
+            });
+
+            mainCard.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('stopwatch')) return;
+                e.preventDefault();
+                if (isStopwatchVisible) {
+                    if (isStopwatchRunning) pauseStopwatch();
+                    else resumeStopwatch();
+                } else {
+                    startStopwatch();
+                }
+            });
+
+            document.getElementById('stopwatch').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                resetAndHideStopwatch();
+            });
+
+            // 初始化
+            window.addEventListener('resize', () => {
+                smartResize();
+                updateDisplay();
+            });
+
+            window.addEventListener('load', async () => {
+                await loadAllData();
+                applyBackground();
+                applyUIModeAndColors();
+                smartResize();
+                updateDisplay();
+                lastCheckedTime = new Date();
+                setInterval(updateDisplay, 1000);
+            });
+        })();
+    </script>
+</body>
 </html>
