@@ -14,7 +14,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: '宅在家粉条甜','Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-family:'Segoe UI', 'Microsoft YaHei', sans-serif;
             user-select: none;
             background-color: transparent;
         }
@@ -50,6 +50,7 @@
         }
 
         .viewport-wrapper {
+            font-family: '宅在家粉条甜';
             position: relative;
             width: 100vw;
             height: 100vh;
@@ -649,7 +650,7 @@
                     <input type="file" id="backgroundImageInput" accept="image/*" style="display: none;">
                 </div>
                 <div class="opacity-slider-wrapper">
-                    <label>背景透明度:</label>
+                    <label>不透明度:</label>
                     <input type="range" id="opacitySlider" min="0" max="1" step="0.01" value="0.05">
                     <span id="opacityValue">0.05</span>
                 </div>
@@ -678,6 +679,15 @@
         </div>
     </div>
 
+    <!-- 文件缺失提示弹窗 -->
+    <div class="error-modal" id="fileMissingModal">
+        <div class="error-box" style="border-left-color: #f39c12;">
+            <h3>⚠️ 文件缺失</h3>
+            <p id="fileMissingMessage">音频文件不存在，请重新选择</p>
+            <button class="error-close-btn" id="fileMissingCloseBtn" style="background-color: #f39c12;">确定</button>
+        </div>
+    </div>
+
     <script>
         (function() {
             // ---------- 检测 Tauri API ----------
@@ -695,7 +705,7 @@
             // 全局数据
             let currentSchedule = [];
             let currentDateSettings = {};
-            let currentSoundLibrary = [];
+            let currentSoundLibrary = []; // 存储 { name, filePath } 或 { name, dataUrl } 兼容旧数据
             let currentBgSettings = {};
             let uiSettings = { simpleMode: false };
             let userColors = {
@@ -703,6 +713,9 @@
                 contentColor: '#ffffff',
                 dayCounterColor: '#eeeeee'
             };
+
+            // 存储选中的文件对象，用于后续访问
+            let selectedAudioFiles = new Map(); // name -> File 对象
 
             let audioContext = null;
             let lastCheckedTime = new Date();
@@ -739,18 +752,35 @@
             const labelColorPicker = document.getElementById('labelColorPicker');
             const contentColorPicker = document.getElementById('contentColorPicker');
             const dayCounterColorPicker = document.getElementById('dayCounterColorPicker');
+            
             // 错误弹窗
             const errorModal = document.getElementById('errorModal');
             const errorMessage = document.getElementById('errorMessage');
             const errorCloseBtn = document.getElementById('errorCloseBtn');
+
+            // 文件缺失弹窗
+            const fileMissingModal = document.getElementById('fileMissingModal');
+            const fileMissingMessage = document.getElementById('fileMissingMessage');
+            const fileMissingCloseBtn = document.getElementById('fileMissingCloseBtn');
 
             // 显示错误
             function showError(msg) {
                 errorMessage.textContent = msg;
                 errorModal.style.display = 'flex';
             }
+
+            // 显示文件缺失提示
+            function showFileMissing(fileName) {
+                fileMissingMessage.textContent = `音频文件 "${fileName}" 不存在，请重新选择`;
+                fileMissingModal.style.display = 'flex';
+            }
+
             errorCloseBtn.addEventListener('click', () => {
                 errorModal.style.display = 'none';
+            });
+
+            fileMissingCloseBtn.addEventListener('click', () => {
+                fileMissingModal.style.display = 'none';
             });
 
             // ---------- Tauri 存储适配器 ----------
@@ -834,7 +864,18 @@
                     }
 
                     let savedSounds = await storageAdapter.getItem(LS_KEY_SOUNDS);
-                    currentSoundLibrary = Array.isArray(savedSounds) ? savedSounds : [];
+                    if (Array.isArray(savedSounds)) {
+                        // 兼容旧数据：如果包含 dataUrl，转换为 filePath 格式
+                        currentSoundLibrary = savedSounds.map(sound => {
+                            // 如果已经包含 filePath，直接使用
+                            if (sound.filePath) return sound;
+                            // 如果包含 dataUrl，保留但标记为旧格式
+                            if (sound.dataUrl) return { name: sound.name, dataUrl: sound.dataUrl, isOldFormat: true };
+                            return sound;
+                        });
+                    } else {
+                        currentSoundLibrary = [];
+                    }
 
                     let savedBg = await storageAdapter.getItem(LS_KEY_BG);
                     if (savedBg) {
@@ -924,15 +965,58 @@
                 return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
             }
 
+            // 从文件路径或DataURL播放音频
             function playAudioFromName(name) {
                 if (!name) return;
-                const s = currentSoundLibrary.find(ss => ss.name === name);
-                if (s) playAudioFromDataUrl(s.dataUrl);
+                const sound = currentSoundLibrary.find(ss => ss.name === name);
+                if (!sound) return;
+
+                if (sound.isOldFormat && sound.dataUrl) {
+                    // 旧格式，直接播放DataURL
+                    playAudioFromDataUrl(sound.dataUrl);
+                } else if (sound.filePath) {
+                    // 新格式：文件路径，需要先检查文件是否存在
+                    checkAndPlayFromPath(sound);
+                } else {
+                    showFileMissing(name);
+                }
             }
 
-            function playAudioFromDataUrl(dataUrl) {
+            // 检查文件是否存在并播放
+            function checkAndPlayFromPath(sound) {
+                if (!window.__TAURI__) {
+                    // 非Tauri环境，无法读取本地文件，提示
+                    showFileMissing(sound.name);
+                    return;
+                }
+
+                const { fs } = window.__TAURI__;
+                
+                // 检查文件是否存在
+                fs.readFile(sound.filePath)
+                    .then(() => {
+                        // 文件存在，读取并播放
+                        fs.readBinaryFile(sound.filePath)
+                            .then(arrayBuffer => {
+                                // 将ArrayBuffer转换为Blob URL
+                                const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                                const url = URL.createObjectURL(blob);
+                                playAudioFromUrl(url);
+                            })
+                            .catch(err => {
+                                showFileMissing(sound.name);
+                            });
+                    })
+                    .catch(err => {
+                        showFileMissing(sound.name);
+                    });
+            }
+
+            // 从URL播放音频（Blob URL或DataURL）
+            function playAudioFromUrl(url) {
                 if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                fetch(dataUrl)
+                
+                fetch(url)
                     .then(r => r.arrayBuffer())
                     .then(b => audioContext.decodeAudioData(b))
                     .then(buf => {
@@ -942,6 +1026,11 @@
                         s.start();
                     })
                     .catch(err => showError('音频播放失败: ' + err.message));
+            }
+
+            // 兼容旧格式：从DataURL播放
+            function playAudioFromDataUrl(dataUrl) {
+                playAudioFromUrl(dataUrl);
             }
 
             // 更新主界面
@@ -1097,12 +1186,21 @@
                     let playBtn = document.createElement('button');
                     playBtn.className = 'play-music-btn';
                     playBtn.textContent = '试听';
-                    playBtn.onclick = () => playAudioFromDataUrl(s.dataUrl);
+                    playBtn.onclick = () => {
+                        if (s.isOldFormat && s.dataUrl) {
+                            playAudioFromDataUrl(s.dataUrl);
+                        } else if (s.filePath) {
+                            checkAndPlayFromPath(s);
+                        } else {
+                            showFileMissing(s.name);
+                        }
+                    };
                     let rmBtn = document.createElement('button');
                     rmBtn.className = 'remove-music-btn';
                     rmBtn.textContent = '删除';
                     rmBtn.onclick = () => {
                         currentSoundLibrary.splice(idx, 1);
+                        selectedAudioFiles.delete(s.name);
                         populateMusicLibrary();
                         populateCourseList();
                     };
@@ -1114,11 +1212,32 @@
             function handleFileUpload(input, cb) {
                 let file = input.files[0];
                 if (!file) return;
+                
+                // 获取文件路径（仅在Tauri环境中有效）
+                if (isTauri) {
+                    // 在Tauri中，可以获取文件路径
+                    const filePath = file.path; // 注意：这需要Tauri的fs API支持
+                    if (filePath) {
+                        let name = file.name.replace(/\.[^/.]+$/, '');
+                        cb({ 
+                            name, 
+                            filePath: filePath,
+                            isTauriPath: true 
+                        });
+                        return;
+                    }
+                }
+                
+                // 非Tauri环境或无法获取路径时，回退到DataURL方式
                 let reader = new FileReader();
                 reader.onload = e => {
                     try {
                         let name = file.name.replace(/\.[^/.]+$/, '');
-                        cb({ name, dataUrl: e.target.result });
+                        cb({ 
+                            name, 
+                            dataUrl: e.target.result,
+                            isOldFormat: true 
+                        });
                     } catch (err) {
                         showError('读取文件失败: ' + err.message);
                     }
@@ -1179,7 +1298,18 @@
 
                     await storageAdapter.setItem(LS_KEY_SCHEDULE, currentSchedule);
                     await storageAdapter.setItem(LS_KEY_DATES, currentDateSettings);
-                    await storageAdapter.setItem(LS_KEY_SOUNDS, currentSoundLibrary);
+                    
+                    // 保存声音库，只保存必要的元数据
+                    const soundLibraryToSave = currentSoundLibrary.map(sound => {
+                        if (sound.isTauriPath && sound.filePath) {
+                            return { name: sound.name, filePath: sound.filePath };
+                        } else if (sound.isOldFormat && sound.dataUrl) {
+                            return { name: sound.name, dataUrl: sound.dataUrl, isOldFormat: true };
+                        }
+                        return sound;
+                    });
+                    await storageAdapter.setItem(LS_KEY_SOUNDS, soundLibraryToSave);
+                    
                     await storageAdapter.setItem(LS_KEY_BG, currentBgSettings);
                     await storageAdapter.setItem(LS_KEY_UI, uiSettings);
                     await storageAdapter.setItem(LS_KEY_COLORS, userColors);
